@@ -12,14 +12,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
-import android.widget.Button;
-import android.widget.FrameLayout;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
+import org.apache.commons.lang3.ArrayUtils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 
@@ -29,6 +25,42 @@ public class MeasurementActivity extends AppCompatActivity {
     private static SurfaceView preview = null;
     private static SurfaceHolder previewHolder = null;
     private static Camera camera = null;
+
+
+    private static int averageIndex = 0;
+    private static final int averageArraySize = 100;
+    private static final int[] averageArray = new int[averageArraySize];
+    private static final AtomicBoolean processing = new AtomicBoolean(false);
+    public static enum TYPE {
+        GREEN, RED
+    };
+
+    private static TYPE currentType = TYPE.GREEN;
+
+    public static TYPE getCurrent() {
+        return currentType;
+    }
+
+    private static int beatsIndex = 0;
+    private static final int beatsArraySize = 14;
+    private static final int[] beatsArray = new int[beatsArraySize];
+    private static final long[] timesArray = new long[beatsArraySize];
+    private static double beats = 0;
+    private static long startTime = 0;
+
+
+    static int counter = 0;
+
+    private static final int sampleSize = 256;
+    private static final CircularFifoQueue sampleQueue = new CircularFifoQueue(
+            sampleSize);
+    private static final CircularFifoQueue timeQueue = new CircularFifoQueue(
+            sampleSize);
+
+    public static final CircularFifoQueue bpmQueue = new CircularFifoQueue(40);
+
+    private static final FFT fft = new FFT(sampleSize);
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -140,9 +172,6 @@ public class MeasurementActivity extends AppCompatActivity {
          */
         @Override
         public void onPreviewFrame(byte[] data, Camera cam) {
-
-            Log.i("TEST", "DATA: " + String.valueOf(data.clone()));
-          /*
             if (data == null)
                 throw new NullPointerException();
             Camera.Size size = cam.getParameters().getPreviewSize();
@@ -199,21 +228,10 @@ public class MeasurementActivity extends AppCompatActivity {
             }
 
             bpm = Math.round((float) (bestI * Fs * 60 / sampleSize));
+            Log.i("TEST", String.valueOf(bpm));
             bpmQueue.add(bpm);
 
-            text.setText(String.valueOf(bpm));// + "," +
-            // String.valueOf(Math.round((float)
-            // Fs)));
-            new UDPThread()
-                    .execute(bpm + ", " + System.currentTimeMillis());
 
-            counter++;
-            exampleSeries.appendData(new GraphView.GraphViewData(counter,
-                    imgAvg), true, 1000);
-            processing.set(false);
-
-
-            */
         }
 
         };
